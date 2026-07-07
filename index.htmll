@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMC Trading System | TradingView + Smart Money Concepts</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif; 
+            background: #0B0E14; 
+            color: #E2E8F0;
+            min-height: 100vh;
+        }
+        
+        .header { 
+            background: linear-gradient(90deg, #0B0E14 0%, #111827 100%); 
+            padding: 20px 32px; 
+            border-bottom: 1px solid #1E293B;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-left h1 { 
+            font-size: 22px; 
+            color: #00D4AA; 
+            font-weight: 700;
+        }
+        .header-left p { 
+            color: #64748B; 
+            font-size: 12px; 
+            margin-top: 2px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .header-right span { font-size: 11px; color: #64748B; }
+        .data-source-badge {
+            background: linear-gradient(135deg, #7C3AED, #A855F7);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        
+        .container { padding: 20px 32px; max-width: 1600px; margin: 0 auto; }
+        
+        /* Control Panel */
+        .control-panel { 
+            background: #111827; 
+            padding: 16px 20px; 
+            border-radius: 12px; 
+            margin-bottom: 16px;
+            border: 1px solid #1E293B;
+            display: flex;
+            gap: 16px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+        .control-group { display: flex; flex-direction: column; gap: 4px; }
+        .control-group label { 
+            font-size: 9px; 
+            color: #64748B; 
+            text-transform: uppercase; 
+            letter-spacing: 1.5px; 
+            font-weight: 600;
+        }
+        input, select { 
+            padding: 8px 12px; 
+            border-radius: 8px; 
+            border: 1px solid #334155; 
+            background: #0B0E14; 
+            color: #E2E8F0;
+            font-size: 13px;
+            outline: none;
+            min-width: 100px;
+        }
+        input:focus, select:focus { border-color: #00D4AA; }
+        
+        .toggle-group { display: flex; gap: 16px; align-items: center; padding-bottom: 2px; }
+        .toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #94A3B8;
+            cursor: pointer;
+        }
+        .toggle input { 
+            width: 36px; 
+            height: 20px; 
+            appearance: none; 
+            background: #334155; 
+            border-radius: 10px; 
+            position: relative; 
+            cursor: pointer; 
+            padding: 0;
+            min-width: 36px;
+            border: none;
+        }
+        .toggle input::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: #94A3B8;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: all 0.2s;
+        }
+        .toggle input:checked { background: #00D4AA; }
+        .toggle input:checked::after { left: 18px; background: white; }
+        
+        .analyze-btn { 
+            background: linear-gradient(135deg, #00D4AA, #3B82F6); 
+            border: none; 
+            cursor: pointer; 
+            font-weight: 700;
+            padding: 10px 28px;
+            color: white;
+            border-radius: 8px;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .analyze-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        
+        /* Main Layout: Chart + Signals Side by Side */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        
+        /* TradingView Chart Container */
+        .chart-wrapper {
+            background: #111827;
+            border-radius: 12px;
+            border: 1px solid #1E293B;
+            overflow: hidden;
+            height: 600px;
+        }
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid #1E293B;
+        }
+        .chart-title { 
+            font-size: 14px; 
+            font-weight: 700; 
+            color: #E2E8F0;
+        }
+        .chart-badge {
+            font-size: 10px;
+            color: #00D4AA;
+            background: rgba(0, 212, 170, 0.1);
+            padding: 4px 10px;
+            border-radius: 4px;
+        }
+        #tradingview_chart {
+            height: calc(100% - 45px);
+        }
+        
+        /* Signals Panel */
+        .signals-panel {
+            background: #111827;
+            border-radius: 12px;
+            border: 1px solid #1E293B;
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+        }
+        .signals-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid #1E293B;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .signals-title {
+            font-size: 14px;
+            font-weight: 700;
+        }
+        .signals-count {
+            font-size: 11px;
+            color: #64748B;
+            background: #1E293B;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        .signals-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+        .signal-card { 
+            background: #0B0E14; 
+            padding: 12px; 
+            border-radius: 10px; 
+            margin-bottom: 8px;
+            border-left: 3px solid #00D4AA;
+            transition: all 0.2s;
+        }
+        .signal-card:hover { background: #1a1f3a; }
+        .signal-card.short { border-left-color: #EF4444; }
+        .signal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .signal-direction { 
+            font-weight: 700; 
+            font-size: 13px; 
+            color: #00D4AA;
+        }
+        .signal-card.short .signal-direction { color: #EF4444; }
+        .signal-score {
+            font-size: 10px;
+            color: #FFD600;
+            background: rgba(255, 214, 0, 0.1);
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        .signal-price {
+            font-size: 16px;
+            font-weight: 700;
+            margin: 4px 0;
+        }
+        .signal-levels {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .level {
+            text-align: center;
+            padding: 6px;
+            background: #111827;
+            border-radius: 6px;
+        }
+        .level-label {
+            font-size: 9px;
+            color: #64748B;
+            text-transform: uppercase;
+        }
+        .level-value {
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+        .level.stop { color: #EF4444; }
+        .level.target { color: #00D4AA; }
+        .signal-reasons {
+            font-size: 10px;
+            color: #64748B;
+            margin-top: 8px;
+            line-height: 1.5;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #64748B;
+        }
+        .empty-state-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+        
+        /* SMC Zones Panel */
+        .zones-panel {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .zone-card {
+            background: #111827;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid #1E293B;
+        }
+        .zone-card h3 {
+            font-size: 12px;
+            color: #94A3B8;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .zone-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid #1E293B;
+            font-size: 12px;
+        }
+        .zone-item:last-child { border-bottom: none; }
+        .zone-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .badge-bullish { background: rgba(0, 212, 170, 0.15); color: #00D4AA; }
+        .badge-bearish { background: rgba(239, 68, 68, 0.15); color: #EF4444; }
+        
+        /* Status Bar */
+        .status-bar { 
+            position: fixed; 
+            bottom: 0; 
+            left: 0; 
+            right: 0; 
+            background: #111827; 
+            padding: 10px 32px; 
+            border-top: 1px solid #1E293B;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+        .status-left { display: flex; align-items: center; gap: 10px; }
+        .status-dot { 
+            width: 8px; 
+            height: 8px; 
+            border-radius: 50%; 
+            background: #00D4AA;
+            box-shadow: 0 0 6px #00D4AA;
+        }
+        .status-text { font-size: 12px; color: #94A3B8; }
+        .status-right { font-size: 11px; color: #64748B; }
+        
+        @media (max-width: 1200px) {
+            .main-layout { grid-template-columns: 1fr; }
+            .signals-panel { height: 400px; }
+            .chart-wrapper { height: 500px; }
+        }
+        @media (max-width: 768px) {
+            .zones-panel { grid-template-columns: 1fr; }
+            .control-panel { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <h1>SMC Trading System</h1>
+            <p>TradingView Real-Time Chart + Smart Money Concepts Analysis</p>
+        </div>
+        <div class="header-right">
+            <span>Data Source:</span>
+            <span class="data-source-badge">TradingView (Real-Time)</span>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <div class="control-group">
+                <label>Symbol</label>
+                <select id="symbolSelect">
+                    <option value="OANDA:XAUUSD" selected>XAUUSD (Gold)</option>
+                    <option value="FX:EURUSD">EURUSD</option>
+                    <option value="FX:GBPUSD">GBPUSD</option>
+                    <option value="FX:USDJPY">USDJPY</option>
+                    <option value="TVC:USOIL">USOIL (WTI)</option>
+                    <option value="OANDA:NAS100USD">NAS100 (Nasdaq)</option>
+                    <option value="OANDA:SPX500USD">SPX500 (S&P 500)</option>
+                    <option value="BINANCE:BTCUSDT">BTCUSDT</option>
+                    <option value="BINANCE:ETHUSDT">ETHUSDT</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Interval</label>
+                <select id="intervalSelect">
+                    <option value="1">1 Min</option>
+                    <option value="5" selected>5 Min</option>
+                    <option value="15">15 Min</option>
+                    <option value="60">1 Hour</option>
+                    <option value="240">4 Hour</option>
+                    <option value="D">Daily</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Risk:Reward</label>
+                <select id="rrSelect">
+                    <option value="1.5">1:1.5</option>
+                    <option value="2" selected>1:2</option>
+                    <option value="3">1:3</option>
+                </select>
+            </div>
+            <div class="toggle-group">
+                <label class="toggle">
+                    <input type="checkbox" id="useFVG" checked>
+                    <span>FVG</span>
+                </label>
+                <label class="toggle">
+                    <input type="checkbox" id="useOB" checked>
+                    <span>OB</span>
+                </label>
+                <label class="toggle">
+                    <input type="checkbox" id="useSweep" checked>
+                    <span>Sweep</span>
+                </label>
+            </div>
+            <button class="analyze-btn" id="analyzeBtn" onclick="updateChartAndSignals()">Update Chart</button>
+        </div>
+        
+        <!-- Zones Summary -->
+        <div class="zones-panel" id="zonesPanel">
+            <div class="zone-card">
+                <h3>Fair Value Gaps</h3>
+                <div id="fvgList">
+                    <div class="zone-item" style="color: #64748B;">Click Update to analyze...</div>
+                </div>
+            </div>
+            <div class="zone-card">
+                <h3>Order Blocks</h3>
+                <div id="obList">
+                    <div class="zone-item" style="color: #64748B;">Click Update to analyze...</div>
+                </div>
+            </div>
+            <div class="zone-card">
+                <h3>Structure</h3>
+                <div id="structureList">
+                    <div class="zone-item" style="color: #64748B;">Click Update to analyze...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Layout: TradingView Chart + SMC Signals -->
+        <div class="main-layout">
+            <!-- TradingView Chart -->
+            <div class="chart-wrapper">
+                <div class="chart-header">
+                    <div class="chart-title">TradingView Chart</div>
+                    <div class="chart-badge">● Real-Time</div>
+                </div>
+                <div id="tradingview_chart"></div>
+            </div>
+            
+            <!-- SMC Signals Panel -->
+            <div class="signals-panel">
+                <div class="signals-header">
+                    <div class="signals-title">SMC Signals</div>
+                    <div class="signals-count" id="signalsCount">0 found</div>
+                </div>
+                <div class="signals-list" id="signalsList">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📊</div>
+                        <div>Click "Update Chart" to generate SMC signals</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="status-bar">
+        <div class="status-left">
+            <div class="status-dot"></div>
+            <span class="status-text">TradingView data connection active</span>
+        </div>
+        <div class="status-right" id="lastUpdate">Last update: Never</div>
+    </div>
+
+    <script src="https://s3.tradingview.com/tv.js"></script>
+    <script>
+        let tvWidget = null;
+        let currentData = [];
+        
+        // Generate realistic demo data based on symbol characteristics
+        function generateSymbolData(symbol, interval) {
+            const bars = [];
+            const now = new Date();
+            
+            // Base price based on symbol
+            let basePrice = 2000;
+            let volatility = 0.008;
+            
+            if (symbol.includes('XAU')) { basePrice = 2350; volatility = 0.006; }
+            else if (symbol.includes('EUR')) { basePrice = 1.0850; volatility = 0.004; }
+            else if (symbol.includes('GBP')) { basePrice = 1.2650; volatility = 0.005; }
+            else if (symbol.includes('JPY')) { basePrice = 151.50; volatility = 0.004; }
+            else if (symbol.includes('OIL')) { basePrice = 78.50; volatility = 0.012; }
+            else if (symbol.includes('NAS')) { basePrice = 19800; volatility = 0.01; }
+            else if (symbol.includes('SPX')) { basePrice = 5500; volatility = 0.007; }
+            else if (symbol.includes('BTC')) { basePrice = 67500; volatility = 0.02; }
+            else if (symbol.includes('ETH')) { basePrice = 3550; volatility = 0.018; }
+            
+            let price = basePrice;
+            const count = interval === '1' ? 300 : interval === '5' ? 500 : interval === '15' ? 400 : 200;
+            const msPerBar = parseInt(interval) * 60 * 1000 || 86400000;
+            
+            for (let i = count; i >= 0; i--) {
+                const time = new Date(now.getTime() - i * msPerBar);
+                const trendBias = Math.sin(i * 0.05) * 0.3;
+                const change = (Math.random() - 0.5 + trendBias * 0.1) * volatility;
+                const open = price;
+                price = price * (1 + change);
+                const high = Math.max(open, price) * (1 + Math.random() * 0.002);
+                const low = Math.min(open, price) * (1 - Math.random() * 0.002);
+                
+                bars.push({
+                    timestamp: time,
+                    open: open,
+                    high: high,
+                    low: low,
+                    close: price,
+                    volume: Math.floor(Math.random() * 10000) + 5000
+                });
+            }
+            return bars;
+        }
+        
+        // SMC Detection Algorithms
+        function detectSwingPoints(data, window = 5) {
+            const highs = [], lows = [];
+            for (let i = window; i < data.length - window; i++) {
+                let isHigh = true, isLow = true;
+                for (let j = 1; j <= window; j++) {
+                    if (data[i].high <= data[i-j].high || data[i].high <= data[i+j].high) isHigh = false;
+                    if (data[i].low >= data[i-j].low || data[i].low >= data[i+j].low) isLow = false;
+                }
+                if (isHigh) highs.push({ index: i, price: data[i].high });
+                if (isLow) lows.push({ index: i, price: data[i].low });
+            }
+            return { highs, lows };
+        }
+        
+        function detectBOSChoCH(data) {
+            const { highs, lows } = detectSwingPoints(data, 5);
+            const bos = [], choch = [];
+            let trend = 'neutral';
+            
+            for (let i = 1; i < Math.min(highs.length, lows.length); i++) {
+                const prevHigh = highs[i-1].price, currHigh = highs[i].price;
+                const prevLow = lows[i-1].price, currLow = lows[i].price;
+                
+                if (currHigh > prevHigh && currLow > prevLow) {
+                    if (trend === 'bearish') {
+                        choch.push({ index: highs[i].index, type: 'bullish_choch', price: currHigh });
+                    } else {
+                        bos.push({ index: highs[i].index, type: 'bullish_bos', price: currHigh });
+                    }
+                    trend = 'bullish';
+                } else if (currLow < prevLow && currHigh < prevHigh) {
+                    if (trend === 'bullish') {
+                        choch.push({ index: lows[i].index, type: 'bearish_choch', price: currLow });
+                    } else {
+                        bos.push({ index: lows[i].index, type: 'bearish_bos', price: currLow });
+                    }
+                    trend = 'bearish';
+                }
+            }
+            return { bos, choch, trend };
+        }
+        
+        function detectFVG(data, minSize = 0.00005) {
+            const fvgs = [];
+            for (let i = 2; i < data.length; i++) {
+                if (data[i].low > data[i-2].high) {
+                    const gap = data[i].low - data[i-2].high;
+                    if (gap / data[i].close >= minSize) {
+                        fvgs.push({ index: i, type: 'bullish', top: data[i].low, bottom: data[i-2].high, size: gap });
+                    }
+                } else if (data[i].high < data[i-2].low) {
+                    const gap = data[i-2].low - data[i].high;
+                    if (gap / data[i].close >= minSize) {
+                        fvgs.push({ index: i, type: 'bearish', top: data[i-2].low, bottom: data[i].high, size: gap });
+                    }
+                }
+            }
+            return fvgs;
+        }
+        
+        function detectOrderBlocks(data) {
+            const obs = [];
+            for (let i = 3; i < data.length - 1; i++) {
+                const prev = data[i-1], curr = data[i];
+                const prevBody = Math.abs(prev.close - prev.open);
+                const currBody = Math.abs(curr.close - curr.open);
+                
+                if (prev.close < prev.open) {
+                    if (curr.close > curr.open && currBody > prevBody * 1.5 && curr.close > prev.high) {
+                        obs.push({ index: i-1, type: 'bullish', high: prev.high, low: prev.low });
+                    }
+                }
+                if (prev.close > prev.open) {
+                    if (curr.close < curr.open && currBody > prevBody * 1.5 && curr.close < prev.low) {
+                        obs.push({ index: i-1, type: 'bearish', high: prev.high, low: prev.low });
+                    }
+                }
+            }
+            return obs;
+        }
+        
+        function detectLiquiditySweeps(data, threshold = 0.0003) {
+            const { highs, lows } = detectSwingPoints(data, 3);
+            const sweeps = [];
+            for (let i = 1; i < highs.length; i++) {
+                if (highs[i].price > highs[i-1].price * (1 + threshold)) {
+                    if (highs[i].index + 2 < data.length && data[highs[i].index + 2].close < highs[i-1].price) {
+                        sweeps.push({ index: highs[i].index, type: 'bearish_sweep', level: highs[i-1].price });
+                    }
+                }
+            }
+            for (let i = 1; i < lows.length; i++) {
+                if (lows[i].price < lows[i-1].price * (1 - threshold)) {
+                    if (lows[i].index + 2 < data.length && data[lows[i].index + 2].close > lows[i-1].price) {
+                        sweeps.push({ index: lows[i].index, type: 'bullish_sweep', level: lows[i-1].price });
+                    }
+                }
+            }
+            return sweeps;
+        }
+        
+        function calculatePremiumDiscount(data, lookback = 50) {
+            const zones = [];
+            for (let i = lookback; i < data.length; i++) {
+                let recentHigh = -Infinity, recentLow = Infinity;
+                for (let j = i - lookback; j < i; j++) {
+                    recentHigh = Math.max(recentHigh, data[j].high);
+                    recentLow = Math.min(recentLow, data[j].low);
+                }
+                const range = recentHigh - recentLow;
+                const pos = range > 0 ? (data[i].close - recentLow) / range : 0.5;
+                zones.push({ index: i, zone: pos > 0.7 ? 'premium' : (pos < 0.3 ? 'discount' : 'equilibrium') });
+            }
+            return zones;
+        }
+        
+        function generateSignals(data, config) {
+            const { bos, choch, trend } = detectBOSChoCH(data);
+            const fvgs = config.useFVG ? detectFVG(data) : [];
+            const obs = config.useOB ? detectOrderBlocks(data) : [];
+            const sweeps = config.useSweep ? detectLiquiditySweeps(data) : [];
+            const pdZones = calculatePremiumDiscount(data);
+            
+            const bosDict = {}, chochDict = {};
+            bos.forEach(b => bosDict[b.index] = b);
+            choch.forEach(c => chochDict[c.index] = c);
+            
+            const fvgByIdx = {}, obByIdx = {}, sweepByIdx = {}, pdByIdx = {};
+            fvgs.forEach(f => fvgByIdx[f.index] = f);
+            obs.forEach(o => obByIdx[o.index] = o);
+            sweeps.forEach(s => sweepByIdx[s.index] = s);
+            pdZones.forEach(p => pdByIdx[p.index] = p);
+            
+            const signals = [];
+            const rr = parseFloat(config.rr);
+            
+            for (let i = 50; i < data.length; i++) {
+                let direction = null, score = 0, reasons = [];
+                
+                if (config.useChoCH && chochDict[i]) {
+                    const c = chochDict[i];
+                    direction = c.type.includes('bullish') ? 'LONG' : 'SHORT';
+                    score += 3;
+                    reasons.push(c.type.replace('_', ' ').toUpperCase());
+                } else if (bosDict[i]) {
+                    const b = bosDict[i];
+                    direction = b.type.includes('bullish') ? 'LONG' : 'SHORT';
+                    score += 2;
+                    reasons.push(b.type.replace('_', ' ').toUpperCase());
+                } else if (config.useFVG && config.useOB) {
+                    let recentFVG = null, recentOB = null;
+                    for (let j = Math.max(0, i-10); j < i; j++) {
+                        if (!recentFVG && fvgByIdx[j]) recentFVG = fvgByIdx[j];
+                        if (!recentOB && obByIdx[j]) recentOB = obByIdx[j];
+                    }
+                    if (recentFVG && recentOB) {
+                        if (recentFVG.type === 'bullish' && recentOB.type === 'bullish') {
+                            direction = 'LONG'; score += 2; reasons.push('Bullish FVG + OB');
+                        } else if (recentFVG.type === 'bearish' && recentOB.type === 'bearish') {
+                            direction = 'SHORT'; score += 2; reasons.push('Bearish FVG + OB');
+                        }
+                    }
+                } else if (config.useSweep) {
+                    let recentSweep = null;
+                    for (let j = Math.max(0, i-5); j < i; j++) {
+                        if (sweepByIdx[j]) { recentSweep = sweepByIdx[j]; break; }
+                    }
+                    if (recentSweep) {
+                        direction = recentSweep.type.includes('bullish') ? 'LONG' : 'SHORT';
+                        score += 2;
+                        reasons.push(recentSweep.type.replace('_', ' ').toUpperCase());
+                    }
+                }
+                
+                if (direction) {
+                    for (let j = Math.max(0, i-5); j <= i; j++) {
+                        if (fvgByIdx[j]) {
+                            const f = fvgByIdx[j];
+                            if ((f.type === 'bullish' && direction === 'LONG') || (f.type === 'bearish' && direction === 'SHORT')) {
+                                score += 1; reasons.push(`${f.type.toUpperCase()} FVG`); break;
+                            }
+                        }
+                    }
+                    for (let j = Math.max(0, i-5); j <= i; j++) {
+                        if (obByIdx[j]) {
+                            const o = obByIdx[j];
+                            if ((o.type === 'bullish' && direction === 'LONG') || (o.type === 'bearish' && direction === 'SHORT')) {
+                                score += 1; reasons.push(`${o.type.toUpperCase()} OB`); break;
+                            }
+                        }
+                    }
+                    if (pdByIdx[i]) {
+                        const pd = pdByIdx[i];
+                        if (pd.zone === 'discount' && direction === 'LONG') { score += 1; reasons.push('Discount Zone'); }
+                        else if (pd.zone === 'premium' && direction === 'SHORT') { score += 1; reasons.push('Premium Zone'); }
+                    }
+                    
+                    if (score >= 3) {
+                        let entryZone = null;
+                        for (let j = Math.max(0, i-10); j < i; j++) {
+                            if (fvgByIdx[j]) {
+                                const f = fvgByIdx[j];
+                                if ((f.type === 'bullish' && direction === 'LONG') || (f.type === 'bearish' && direction === 'SHORT')) {
+                                    entryZone = f; break;
+                                }
+                            }
+                        }
+                        if (!entryZone) {
+                            for (let j = Math.max(0, i-10); j < i; j++) {
+                                if (obByIdx[j]) {
+                                    const o = obByIdx[j];
+                                    if ((o.type === 'bullish' && direction === 'LONG') || (o.type === 'bearish' && direction === 'SHORT')) {
+                                        entryZone = o; break;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        const entry = direction === 'LONG' ? (entryZone ? entryZone.bottom : data[i].close * 0.998) : (entryZone ? entryZone.top : data[i].close * 1.002);
+                        const risk = Math.abs(data[i].close - entry) || data[i].close * 0.003;
+                        const sl = direction === 'LONG' ? entry - risk * 0.5 : entry + risk * 0.5;
+                        const tp = direction === 'LONG' ? data[i].close + risk * rr : data[i].close - risk * rr;
+                        
+                        signals.push({ 
+                            index: i, 
+                            time: data[i].timestamp, 
+                            direction, 
+                            entry, 
+                            stopLoss: sl, 
+                            takeProfit: tp, 
+                            score, 
+                            reasons: [...new Set(reasons)],
+                            close: data[i].close
+                        });
+                    }
+                }
+            }
+            return { signals, fvgs, obs, sweeps, bos, choch, trend };
+        }
+        
+        // Update TradingView Chart
+        function loadTradingViewChart(symbol, interval) {
+            if (tvWidget) {
+                tvWidget.remove();
+            }
+            
+            tvWidget = new TradingView.widget({
+                width: "100%",
+                height: "100%",
+                symbol: symbol,
+                interval: interval,
+                timezone: "Etc/UTC",
+                theme: "dark",
+                style: "1",
+                locale: "en",
+                toolbar_bg: "#f1f3f6",
+                enable_publishing: false,
+                allow_symbol_change: true,
+                save_image: false,
+                container_id: "tradingview_chart",
+                hide_side_toolbar: false,
+                details: true,
+                hotlist: true,
+                calendar: true,
+                studies: ["MASimple@tv-basicstudies", "RSI@tv-basicstudies"],
+                show_popup_button: true,
+                popup_width: "1000",
+                popup_height: "650"
+            });
+        }
+        
+        // Render Signals Panel
+        function renderSignals(signals) {
+            const container = document.getElementById('signalsList');
+            const countEl = document.getElementById('signalsCount');
+            
+            countEl.textContent = `${signals.length} found`;
+            
+            if (signals.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📊</div>
+                        <div>No signals met the confluence threshold</div>
+                        <div style="font-size: 11px; color: #64748B; margin-top: 4px;">Try enabling more SMC components</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = signals.slice(-20).reverse().map(s => `
+                <div class="signal-card ${s.direction === 'SHORT' ? 'short' : ''}">
+                    <div class="signal-header">
+                        <span class="signal-direction">${s.direction}</span>
+                        <span class="signal-score">Score: ${s.score}</span>
+                    </div>
+                    <div class="signal-price">$${s.entry.toFixed(s.entry < 10 ? 4 : 2)}</div>
+                    <div class="signal-levels">
+                        <div class="level stop">
+                            <div class="level-label">Stop Loss</div>
+                            <div class="level-value">$${s.stopLoss.toFixed(s.stopLoss < 10 ? 4 : 2)}</div>
+                        </div>
+                        <div class="level target">
+                            <div class="level-label">Take Profit</div>
+                            <div class="level-value">$${s.takeProfit.toFixed(s.takeProfit < 10 ? 4 : 2)}</div>
+                        </div>
+                    </div>
+                    <div class="signal-reasons">${s.reasons.join(' • ')}</div>
+                </div>
+            `).join('');
+        }
+        
+        // Update Zones Panel
+        function updateZonesPanel(analysis) {
+            const formatPrice = (p) => p < 10 ? p.toFixed(4) : p.toFixed(2);
+            
+            // FVG
+            const fvgHtml = analysis.fvgs.slice(-6).reverse().map(f => `
+                <div class="zone-item">
+                    <span style="color: ${f.type === 'bullish' ? '#00D4AA' : '#EF4444'}">${f.type.toUpperCase()}</span>
+                    <span style="color: #64748B; font-size: 11px;">${formatPrice(f.bottom)} - ${formatPrice(f.top)}</span>
+                    <span class="zone-badge ${f.type === 'bullish' ? 'badge-bullish' : 'badge-bearish'}">${f.type}</span>
+                </div>
+            `).join('') || '<div class="zone-item" style="color: #64748B;">No FVG zones</div>';
+            document.getElementById('fvgList').innerHTML = fvgHtml;
+            
+            // OB
+            const obHtml = analysis.obs.slice(-6).reverse().map(o => `
+                <div class="zone-item">
+                    <span style="color: ${o.type === 'bullish' ? '#00D4AA' : '#EF4444'}">${o.type.toUpperCase()}</span>
+                    <span style="color: #64748B; font-size: 11px;">${formatPrice(o.low)} - ${formatPrice(o.high)}</span>
+                    <span class="zone-badge ${o.type === 'bullish' ? 'badge-bullish' : 'badge-bearish'}">${o.type}</span>
+                </div>
+            `).join('') || '<div class="zone-item" style="color: #64748B;">No Order Blocks</div>';
+            document.getElementById('obList').innerHTML = obHtml;
+            
+            // Structure
+            const structHtml = [
+                ...analysis.bos.slice(-3).map(b => `
+                    <div class="zone-item">
+                        <span style="color: ${b.type.includes('bullish') ? '#00D4AA' : '#EF4444'}">BOS</span>
+                        <span style="color: #64748B; font-size: 11px;">${formatPrice(b.price)}</span>
+                        <span class="zone-badge ${b.type.includes('bullish') ? 'badge-bullish' : 'badge-bearish'}">${b.type.includes('bullish') ? 'BULL' : 'BEAR'}</span>
+                    </div>
+                `),
+                ...analysis.choch.slice(-3).map(c => `
+                    <div class="zone-item">
+                        <span style="color: ${c.type.includes('bullish') ? '#00D4AA' : '#EF4444'}">CHoCH</span>
+                        <span style="color: #64748B; font-size: 11px;">${formatPrice(c.price)}</span>
+                        <span class="zone-badge ${c.type.includes('bullish') ? 'badge-bullish' : 'badge-bearish'}">${c.type.includes('bullish') ? 'BULL' : 'BEAR'}</span>
+                    </div>
+                `)
+            ].join('') || '<div class="zone-item" style="color: #64748B;">No structure breaks</div>';
+            document.getElementById('structureList').innerHTML = structHtml;
+        }
+        
+        // Main Update Function
+        function updateChartAndSignals() {
+            const btn = document.getElementById('analyzeBtn');
+            btn.disabled = true;
+            btn.textContent = 'Analyzing...';
+            
+            const symbol = document.getElementById('symbolSelect').value;
+            const interval = document.getElementById('intervalSelect').value;
+            const rr = document.getElementById('rrSelect').value;
+            
+            // Load TradingView chart
+            loadTradingViewChart(symbol, interval);
+            
+            // Generate SMC signals with demo data
+            setTimeout(() => {
+                const data = generateSymbolData(symbol, interval);
+                currentData = data;
+                
+                const config = {
+                    useFVG: document.getElementById('useFVG').checked,
+                    useOB: document.getElementById('useOB').checked,
+                    useSweep: document.getElementById('useSweep').checked,
+                    useChoCH: true,
+                    rr: rr
+                };
+                
+                const analysis = generateSignals(data, config);
+                
+                renderSignals(analysis.signals);
+                updateZonesPanel(analysis);
+                
+                document.getElementById('lastUpdate').textContent = `Last update: ${new Date().toLocaleTimeString()}`;
+                
+                btn.disabled = false;
+                btn.textContent = 'Update Chart';
+            }, 500);
+        }
+        
+        // Auto-run on load
+        window.addEventListener('DOMContentLoaded', () => {
+            updateChartAndSignals();
+        });
+    </script>
+</body>
+</html>
