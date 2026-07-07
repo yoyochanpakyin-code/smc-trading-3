@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMC Trading System Dashboard UI</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif; 
+            background: #0B0E14; 
+            color: #E2E8F0;
+            min-height: 100vh;
+        }
+        .header { 
+            background: linear-gradient(90deg, #0B0E14 0%, #111827 100%); 
+            padding: 20px 32px; 
+            border-bottom: 1px solid #1E293B;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-left h1 { 
+            font-size: 22px; 
+            color: #00D4AA; 
+            font-weight: 700;
+        }
+        .header-left p { 
+            color: #64748B; 
+            font-size: 12px; 
+            margin-top: 2px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .header-right span { font-size: 11px; color: #64748B; }
+        .data-source-badge {
+            background: linear-gradient(135deg, #7C3AED, #A855F7);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .container { padding: 20px 32px; max-width: 1400px; margin: 0 auto; }
+        .control-panel { 
+            background: #111827; 
+            padding: 16px 20px; 
+            border-radius: 12px; 
+            margin-bottom: 16px;
+            border: 1px solid #1E293B;
+            display: flex;
+            gap: 16px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+        .control-group { display: flex; flex-direction: column; gap: 4px; }
+        .control-group label { 
+            font-size: 9px; 
+            color: #64748B; 
+            text-transform: uppercase; 
+            letter-spacing: 1.5px; 
+            font-weight: 600;
+        }
+        input, select { 
+            padding: 8px 12px; 
+            border-radius: 8px; 
+            border: 1px solid #334155; 
+            background: #0B0E14; 
+            color: #E2E8F0;
+            font-size: 13px;
+            outline: none;
+            min-width: 80px;
+        }
+        input:focus, select:focus { border-color: #00D4AA; }
+        .toggle-group { display: flex; gap: 16px; align-items: center; padding-bottom: 2px; }
+        .toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #94A3B8;
+            cursor: pointer;
+        }
+        .toggle input { 
+            width: 36px; 
+            height: 20px; 
+            appearance: none; 
+            background: #334155; 
+            border-radius: 10px; 
+            position: relative; 
+            cursor: pointer; 
+            padding: 0;
+            min-width: 36px;
+            border: none;
+        }
+        .toggle input::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: #94A3B8;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: all 0.2s;
+        }
+        .toggle input:checked { background: #00D4AA; }
+        .toggle input:checked::after { left: 18px; background: white; }
+        .analyze-btn { 
+            background: linear-gradient(135deg, #00D4AA, #3B82F6); 
+            border: none; 
+            cursor: pointer; 
+            font-weight: 700;
+            padding: 10px 28px;
+            color: white;
+            border-radius: 8px;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .analyze-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .metrics-grid { 
+            display: grid; 
+            grid-template-columns: repeat(6, 1fr); 
+            gap: 12px; 
+            margin-bottom: 16px; 
+        }
+        .metric-card { 
+            background: #111827; 
+            padding: 16px 12px; 
+            border-radius: 12px; 
+            border: 1px solid #1E293B;
+            text-align: center;
+        }
+        .metric-label { 
+            font-size: 9px; 
+            color: #64748B; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            font-weight: 600;
+        }
+        .metric-value { 
+            font-size: 22px; 
+            font-weight: 700; 
+            margin-top: 6px;
+        }
+        .metric-value.positive { color: #00D4AA; }
+        .metric-value.negative { color: #EF4444; }
+        .metric-value.neutral { color: #E2E8F0; }
+        .chart-container { 
+            background: #111827; 
+            padding: 16px 20px; 
+            border-radius: 12px; 
+            border: 1px solid #1E293B;
+            position: relative;
+            height: 480px;
+        }
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .chart-title { 
+            font-size: 14px; 
+            font-weight: 700; 
+            color: #E2E8F0;
+        }
+        .chart-legend { 
+            display: flex; 
+            gap: 16px; 
+        }
+        .legend-item { 
+            display: flex; 
+            align-items: center; 
+            gap: 6px; 
+            font-size: 11px; 
+            color: #94A3B8; 
+        }
+        .legend-dot { 
+            width: 8px; 
+            height: 8px; 
+            border-radius: 2px; 
+        }
+        .loading-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(11, 14, 20, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            z-index: 10;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .loading-overlay.active { display: flex; }
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #1E293B;
+            border-top-color: #00D4AA;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text {
+            color: #94A3B8;
+            font-size: 12px;
+        }
+        .error-state {
+            display: none;
+            text-align: center;
+            padding: 60px 20px;
+            color: #EF4444;
+        }
+        .error-state.active { display: block; }
+        .error-state h3 { font-size: 16px; margin-bottom: 8px; }
+        .error-state p { font-size: 12px; color: #64748B; }
+        .fallback-data {
+            display: none;
+            background: #1e293b;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            border-left: 3px solid #ffd600;
+        }
+        .fallback-data.active { display: block; }
+        .fallback-data p { margin: 0; font-size: 12px; color: #94a3b8; }
+        @media (max-width: 1024px) {
+            .metrics-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 768px) {
+            .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+            .control-panel { flex-direction: column; align-items: stretch; }
+            .chart-container { height: 350px; }
+            .header { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<base target="_blank">
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <h1>SMC Trading System</h1>
+            <p>Smart Money Concepts | Pure JavaScript | No Backend Required</p>
+        </div>
+        <div class="header-right">
+            <span>Data Source:</span>
+            <span class="data-source-badge">Yahoo Finance (Free)</span>
+        </div>
+    </div>
+    <div class="container">
+        <div class="fallback-data" id="fallbackNotice">
+            <p><strong style="color: #ffd600;">Note:</strong> Using demo data because Yahoo Finance API is blocked from GitHub Pages. For live data, run this file locally on your computer.</p>
+        </div>
+        <div class="control-panel">
+            <div class="control-group">
+                <label>Symbol</label>
+                <input type="text" id="symbolInput" value="SPY" placeholder="SPY">
+            </div>
+            <div class="control-group">
+                <label>Period</label>
+                <select id="periodSelect">
+                    <option value="5d">5 Days</option>
+                    <option value="15d" selected>15 Days</option>
+                    <option value="30d">30 Days</option>
+                    <option value="60d">60 Days</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Interval</label>
+                <select id="intervalSelect">
+                    <option value="5m" selected>5 Min</option>
+                    <option value="15m">15 Min</option>
+                    <option value="1h">1 Hour</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Risk:Reward</label>
+                <select id="rrSelect">
+                    <option value="1.5">1:1.5</option>
+                    <option value="2" selected>1:2</option>
+                    <option value="3">1:3</option>
+                </select>
+            </div>
+            <div class="toggle-group">
+                <label class="toggle">
+                    <input type="checkbox" id="useFVG" checked>
+                    <span>FVG</span>
+                </label>
+                <label class="toggle">
+                    <input type="checkbox" id="useOB" checked>
+                    <span>OB</span>
+                </label>
+                <label class="toggle">
+                    <input type="checkbox" id="useSweep" checked>
+                    <span>Sweep</span>
+                </label>
+            </div>
+            <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">Analyze</button>
+        </div>
+        <div class="metrics-grid" id="metricsGrid">
+            <div class="metric-card">
+                <div class="metric-label">Current Price</div>
+                <div class="metric-value neutral" id="metricPrice">--</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Signals Found</div>
+                <div class="metric-value neutral" id="metricSignals">--</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">FVG Zones</div>
+                <div class="metric-value neutral" id="metricFVG">--</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Order Blocks</div>
+                <div class="metric-value neutral" id="metricOB">--</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">BOS/CHoCH</div>
+                <div class="metric-value neutral" id="metricStructure">--</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Trend</div>
+                <div class="metric-value neutral" id="metricTrend">--</div>
+            </div>
+        </div>
+        <div class="chart-container">
+            <div class="chart-header">
+                <div class="chart-title">Price Chart with SMC Zones</div>
+                <div class="chart-legend">
+                    <div class="legend-item"><div class="legend-dot" style="background: #00D4AA;"></div>Bullish FVG</div>
+                    <div class="legend-item"><div class="legend-dot" style="background: #EF4444;"></div>Bearish FVG</div>
+                    <div class="legend-item"><div class="legend-dot" style="background: #FBBF24;"></div>Order Block</div>
+                    <div class="legend-item"><div class="legend-dot" style="background: #3B82F6;"></div>Signal</div>
+                </div>
+            </div>
+            <div class="loading-overlay" id="loadingOverlay">
+                <div class="spinner"></div>
+                <div class="loading-text" id="loadingText">Fetching market data...</div>
+            </div>
+            <div class="error-state" id="errorState">
+                <h3>Failed to load data</h3>
+                <p id="errorMessage">Please check your connection and try again.</p>
+            </div>
+            <canvas id="priceChart"></canvas>
+        </div>
+    </div>
+    <script>
+        let chart = null;
+        let currentData = null;
+        let usingFallback = false;
+
+        // Try multiple data sources
+        async function fetchData(symbol, period, interval) {
+            // Try direct Yahoo Finance first
+            try {
+                const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${period}&includeAdjustedClose=true`;
+                const response = await fetch(url);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (!data.chart?.error) return parseYahooData(data);
+                }
+            } catch (e) { console.log('Direct fetch failed, trying proxy...'); }
+
+            // Try CORS proxy
+            const proxies = [
+                `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${period}`)}`,
+                `https://corsproxy.io/?${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${period}`)}`
+            ];
+
+            for (const proxyUrl of proxies) {
+                try {
+                    const response = await fetch(proxyUrl);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (!data.chart?.error) return parseYahooData(data);
+                    }
+                } catch (e) { continue; }
+            }
+
+            throw new Error('All data sources failed');
+        }
+
+        function parseYahooData(data) {
+            const result = data.chart.result[0];
+            const timestamps = result.timestamp;
+            const quote = result.indicators.quote[0];
+            const bars = [];
+            for (let i = 0; i < timestamps.length; i++) {
+                if (quote.open[i] !== null && quote.close[i] !== null) {
+                    bars.push({
+                        timestamp: new Date(timestamps[i] * 1000),
+                        open: quote.open[i],
+                        high: quote.high[i],
+                        low: quote.low[i],
+                        close: quote.close[i],
+                        volume: quote.volume[i] || 0
+                    });
+                }
+            }
+            return bars;
+        }
+
+        // Generate realistic demo data as fallback
+        function generateDemoData(symbol) {
+            const bars = [];
+            const now = new Date();
+            let price = symbol.includes('BTC') ? 65000 : (symbol.includes('ETH') ? 3500 : 450);
+            const isCrypto = symbol.includes('BTC') || symbol.includes('ETH');
+            const volatility = isCrypto ? 0.015 : 0.008;
+
+            for (let i = 500; i >= 0; i--) {
+                const time = new Date(now.getTime() - i * 5 * 60 * 1000);
+                const change = (Math.random() - 0.48) * volatility;
+                const open = price;
+                price = price * (1 + change);
+                const high = Math.max(open, price) * (1 + Math.random() * 0.003);
+                const low = Math.min(open, price) * (1 - Math.random() * 0.003);
+
+                bars.push({
+                    timestamp: time,
+                    open: open,
+                    high: high,
+                    low: low,
+                    close: price,
+                    volume: Math.floor(Math.random() * 1000000) + 500000
+                });
+            }
+            return bars;
+        }
+
+        function detectSwingPoints(data, window = 5) {
+            const highs = [], lows = [];
+            for (let i = window; i < data.length - window; i++) {
+                let isHigh = true, isLow = true;
+                for (let j = 1; j <= window; j++) {
+                    if (data[i].high <= data[i-j].high || data[i].high <= data[i+j].high) isHigh = false;
+                    if (data[i].low >= data[i-j].low || data[i].low >= data[i+j].low) isLow = false;
+                }
+                if (isHigh) highs.push({ index: i, price: data[i].high });
+                if (isLow) lows.push({ index: i, price: data[i].low });
+            }
+            return { highs, lows };
+        }
+
+        function detectBOSChoCH(data) {
+            const { highs, lows } = detectSwingPoints(data, 5);
+            const bos = [], choch = [];
+            let trend = 'neutral';
+            for (let i = 1; i < Math.min(highs.length, lows.length); i++) {
+                const prevHigh = highs[i-1].price, currHigh = highs[i].price;
+                const prevLow = lows[i-1].price, currLow = lows[i].price;
+                if (currHigh > prevHigh && currLow > prevLow) {
+                    if (trend === 'bearish') {
+                        choch.push({ index: highs[i].index, type: 'bullish_choch', price: currHigh });
+                    } else {
+                        bos.push({ index: highs[i].index, type: 'bullish_bos', price: currHigh });
+                    }
+                    trend = 'bullish';
+                } else if (currLow < prevLow && currHigh < prevHigh) {
+                    if (trend === 'bullish') {
+                        choch.push({ index: lows[i].index, type: 'bearish_choch', price: currLow });
+                    } else {
+                        bos.push({ index: lows[i].index, type: 'bearish_bos', price: currLow });
+                    }
+                    trend = 'bearish';
+                }
+            }
+            return { bos, choch, trend };
+        }
+
+        function detectFVG(data, minSize = 0.00005) {
+            const fvgs = [];
+            for (let i = 2; i < data.length; i++) {
+                if (data[i].low > data[i-2].high) {
+                    const gap = data[i].low - data[i-2].high;
+                    if (gap / data[i].close >= minSize) {
+                        fvgs.push({ index: i, type: 'bullish', top: data[i].low, bottom: data[i-2].high, size: gap });
+                    }
+                } else if (data[i].high < data[i-2].low) {
+                    const gap = data[i-2].low - data[i].high;
+                    if (gap / data[i].close >= minSize) {
+                        fvgs.push({ index: i, type: 'bearish', top: data[i-2].low, bottom: data[i].high, size: gap });
+                    }
+                }
+            }
+            return fvgs;
+        }
+
+        function detectOrderBlocks(data) {
+            const obs = [];
+            for (let i = 3; i < data.length - 1; i++) {
+                const prev = data[i-1], curr = data[i];
+                const prevBody = Math.abs(prev.close - prev.open);
+                const currBody = Math.abs(curr.close - curr.open);
+                if (prev.close < prev.open) {
+                    if (curr.close > curr.open && currBody > prevBody * 1.5 && curr.close > prev.high) {
+                        obs.push({ index: i-1, type: 'bullish', high: prev.high, low: prev.low });
+                    }
+                }
+                if (prev.close > prev.open) {
+                    if (curr.close < curr.open && currBody > prevBody * 1.5 && curr.close < prev.low) {
+                        obs.push({ index: i-1, type: 'bearish', high: prev.high, low: prev.low });
+                    }
+                }
+            }
+            return obs;
+        }
+
+        function detectLiquiditySweeps(data, threshold = 0.0003) {
+            const { highs, lows } = detectSwingPoints(data, 3);
+            const sweeps = [];
+            for (let i = 1; i < highs.length; i++) {
+                if (highs[i].price > highs[i-1].price * (1 + threshold)) {
+                    if (highs[i].index + 2 < data.length && data[highs[i].index + 2].close < highs[i-1].price) {
+                        sweeps.push({ index: highs[i].index, type: 'bearish_sweep', level: highs[i-1].price });
+                    }
+                }
+            }
+            for (let i = 1; i < lows.length; i++) {
+                if (lows[i].price < lows[i-1].price * (1 - threshold)) {
+                    if (lows[i].index + 2 < data.length && data[lows[i].index + 2].close > lows[i-1].price) {
+                        sweeps.push({ index: lows[i].index, type: 'bullish_sweep', level: lows[i-1].price });
+                    }
+                }
+            }
+            return sweeps;
+        }
+
+        function calculatePremiumDiscount(data, lookback = 50) {
+            const zones = [];
+            for (let i = lookback; i < data.length; i++) {
+                let recentHigh = -Infinity, recentLow = Infinity;
+                for (let j = i - lookback; j < i; j++) {
+                    recentHigh = Math.max(recentHigh, data[j].high);
+                    recentLow = Math.min(recentLow, data[j].low);
+                }
+                const range = recentHigh - recentLow;
+                const pos = range > 0 ? (data[i].close - recentLow) / range : 0.5;
+                zones.push({ index: i, zone: pos > 0.7 ? 'premium' : (pos < 0.3 ? 'discount' : 'equilibrium') });
+            }
+            return zones;
+        }
+
+        function generateSignals(data, config) {
+            const { bos, choch, trend } = detectBOSChoCH(data);
+            const fvgs = config.useFVG ? detectFVG(data) : [];
+            const obs = config.useOB ? detectOrderBlocks(data) : [];
+            const sweeps = config.useSweep ? detectLiquiditySweeps(data) : [];
+            const pdZones = calculatePremiumDiscount(data);
+
+            const bosDict = {}, chochDict = {};
+            bos.forEach(b => bosDict[b.index] = b);
+            choch.forEach(c => chochDict[c.index] = c);
+
+            const fvgByIdx = {}, obByIdx = {}, sweepByIdx = {}, pdByIdx = {};
+            fvgs.forEach(f => fvgByIdx[f.index] = f);
+            obs.forEach(o => obByIdx[o.index] = o);
+            sweeps.forEach(s => sweepByIdx[s.index] = s);
+            pdZones.forEach(p => pdByIdx[p.index] = p);
+
+            const signals = [];
+            const rr = parseFloat(config.rr);
+
+            for (let i = 50; i < data.length; i++) {
+                let direction = null, score = 0, reasons = [];
+
+                if (config.useChoCH && chochDict[i]) {
+                    const c = chochDict[i];
+                    direction = c.type.includes('bullish') ? 'LONG' : 'SHORT';
+                    score += 3;
+                    reasons.push(c.type.replace('_', ' ').toUpperCase());
+                } else if (bosDict[i]) {
+                    const b = bosDict[i];
+                    direction = b.type.includes('bullish') ? 'LONG' : 'SHORT';
+                    score += 2;
+                    reasons.push(b.type.replace('_', ' ').toUpperCase());
+                } else if (config.useFVG && config.useOB) {
+                    let recentFVG = null, recentOB = null;
+                    for (let j = Math.max(0, i-10); j < i; j++) {
+                        if (!recentFVG && fvgByIdx[j]) recentFVG = fvgByIdx[j];
+                        if (!recentOB && obByIdx[j]) recentOB = obByIdx[j];
+                    }
+                    if (recentFVG && recentOB) {
+                        if (recentFVG.type === 'bullish' && recentOB.type === 'bullish') {
+                            direction = 'LONG'; score += 2; reasons.push('Bullish FVG + OB');
+                        } else if (recentFVG.type === 'bearish' && recentOB.type === 'bearish') {
+                            direction = 'SHORT'; score += 2; reasons.push('Bearish FVG + OB');
+                        }
+                    }
+                } else if (config.useSweep) {
+                    let recentSweep = null;
+                    for (let j = Math.max(0, i-5); j < i; j++) {
+                        if (sweepByIdx[j]) { recentSweep = sweepByIdx[j]; break; }
+                    }
+                    if (recentSweep) {
+                        direction = recentSweep.type.includes('bullish') ? 'LONG' : 'SHORT';
+                        score += 2;
+                        reasons.push(recentSweep.type.replace('_', ' ').toUpperCase());
+                    }
+                }
+
+                if (direction) {
+                    for (let j = Math.max(0, i-5); j <= i; j++) {
+                        if (fvgByIdx[j]) {
+                            const f = fvgByIdx[j];
+                            if ((f.type === 'bullish' && direction === 'LONG') || (f.type === 'bearish' && direction === 'SHORT')) {
+                                score += 1; reasons.push(`${f.type.toUpperCase()} FVG`); break;
+                            }
+                        }
+                    }
+                    for (let j = Math.max(0, i-5); j <= i; j++) {
+                        if (obByIdx[j]) {
+                            const o = obByIdx[j];
+                            if ((o.type === 'bullish' && direction === 'LONG') || (o.type === 'bearish' && direction === 'SHORT')) {
+                                score += 1; reasons.push(`${o.type.toUpperCase()} OB`); break;
+                            }
+                        }
+                    }
+                    if (pdByIdx[i]) {
+                        const pd = pdByIdx[i];
+                        if (pd.zone === 'discount' && direction === 'LONG') { score += 1; reasons.push('Discount Zone'); }
+                        else if (pd.zone === 'premium' && direction === 'SHORT') { score += 1; reasons.push('Premium Zone'); }
+                    }
+
+                    if (score >= 3) {
+                        let entryZone = null;
+                        for (let j = Math.max(0, i-10); j < i; j++) {
+                            if (fvgByIdx[j]) {
+                                const f = fvgByIdx[j];
+                                if ((f.type === 'bullish' && direction === 'LONG') || (f.type === 'bearish' && direction === 'SHORT')) {
+                                    entryZone = f; break;
+                                }
+                            }
+                        }
+                        if (!entryZone) {
+                            for (let j = Math.max(0, i-10); j < i; j++) {
+                                if (obByIdx[j]) {
+                                    const o = obByIdx[j];
+                                    if ((o.type === 'bullish' && direction === 'LONG') || (o.type === 'bearish' && direction === 'SHORT')) {
+                                        entryZone = o; break;
+                                    }
+                                }
+                            }
+                        }
+
+                        const entry = direction === 'LONG' ? (entryZone ? entryZone.bottom : data[i].close * 0.998) : (entryZone ? entryZone.top : data[i].close * 1.002);
+                        const risk = Math.abs(data[i].close - entry) || data[i].close * 0.003;
+                        const sl = direction === 'LONG' ? entry - risk * 0.5 : entry + risk * 0.5;
+                        const tp = direction === 'LONG' ? data[i].close + risk * rr : data[i].close - risk * rr;
+
+                        signals.push({ index: i, time: data[i].timestamp, direction, entry, stopLoss: sl, takeProfit: tp, score, reasons: [...new Set(reasons)] });
+                    }
+                }
+            }
+            return { signals, fvgs, obs, sweeps, bos, choch, trend };
+        }
+
+        function renderChart(data, analysis) {
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            if (chart) chart.destroy();
+
+            const labels = data.map(d => d.timestamp);
+            const prices = data.map(d => d.close);
+
+            const fvgDatasets = [];
+            analysis.fvgs.slice(-15).forEach((fvg) => {
+                const bgData = new Array(data.length).fill(null);
+                for (let i = fvg.index; i < Math.min(fvg.index + 5, data.length); i++) {
+                    bgData[i] = fvg.type === 'bullish' ? fvg.top : fvg.bottom;
+                }
+                fvgDatasets.push({
+                    data: bgData,
+                    backgroundColor: fvg.type === 'bullish' ? 'rgba(0, 212, 170, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                    borderColor: 'transparent',
+                    fill: 'start',
+                    pointRadius: 0,
+                    tension: 0
+                });
+            });
+
+            const signalData = data.map((d, i) => {
+                const sig = analysis.signals.find(s => s.index === i);
+                return sig ? { x: d.timestamp, y: d.close, direction: sig.direction } : null;
+            }).filter(s => s !== null);
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        ...fvgDatasets,
+                        {
+                            label: 'Price',
+                            data: prices,
+                            borderColor: '#E2E8F0',
+                            backgroundColor: 'rgba(226, 232, 240, 0.03)',
+                            borderWidth: 1.2,
+                            fill: true,
+                            pointRadius: 0,
+                            tension: 0.1,
+                            order: 1
+                        },
+                        {
+                            label: 'Signals',
+                            data: signalData.map(s => ({ x: s.x, y: s.y })),
+                            backgroundColor: signalData.map(s => s.direction === 'LONG' ? '#00D4AA' : '#EF4444'),
+                            borderColor: 'transparent',
+                            pointRadius: 7,
+                            pointStyle: 'triangle',
+                            pointHoverRadius: 10,
+                            order: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#111827',
+                            titleColor: '#E2E8F0',
+                            bodyColor: '#94A3B8',
+                            borderColor: '#334155',
+                            borderWidth: 1,
+                            padding: 12,
+                            callbacks: {
+                                label: function(context) {
+                                    const sig = analysis.signals.find(s => s.index === context.dataIndex);
+                                    if (sig) {
+                                        return [
+                                            `${sig.direction} Signal (Score: ${sig.score})`,
+                                            `Entry: $${sig.entry.toFixed(2)}`,
+                                            `Stop: $${sig.stopLoss.toFixed(2)}`,
+                                            `Target: $${sig.takeProfit.toFixed(2)}`
+                                        ];
+                                    }
+                                    return `Price: $${context.parsed.y.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: { unit: 'hour', displayFormats: { hour: 'MM-dd HH:mm' } },
+                            grid: { color: '#1E293B', drawBorder: false },
+                            ticks: { color: '#64748B', maxTicksLimit: 8, font: { size: 10 } }
+                        },
+                        y: {
+                            grid: { color: '#1E293B', drawBorder: false },
+                            ticks: { color: '#64748B', font: { size: 10 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        function setLoading(isLoading, text = '') {
+            const overlay = document.getElementById('loadingOverlay');
+            const btn = document.getElementById('analyzeBtn');
+            const errorState = document.getElementById('errorState');
+            if (isLoading) {
+                overlay.classList.add('active');
+                document.getElementById('loadingText').textContent = text;
+                btn.disabled = true;
+                errorState.classList.remove('active');
+            } else {
+                overlay.classList.remove('active');
+                btn.disabled = false;
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorState').classList.add('active');
+            setLoading(false);
+        }
+
+        function updateMetrics(data, analysis) {
+            const lastPrice = data[data.length - 1].close;
+            const els = {
+                price: document.getElementById('metricPrice'),
+                signals: document.getElementById('metricSignals'),
+                fvg: document.getElementById('metricFVG'),
+                ob: document.getElementById('metricOB'),
+                structure: document.getElementById('metricStructure'),
+                trend: document.getElementById('metricTrend')
+            };
+            els.price.textContent = `$${lastPrice.toFixed(2)}`;
+            els.price.className = 'metric-value neutral';
+            els.signals.textContent = analysis.signals.length;
+            els.signals.className = analysis.signals.length > 0 ? 'metric-value positive' : 'metric-value neutral';
+            els.fvg.textContent = analysis.fvgs.length;
+            els.fvg.className = 'metric-value neutral';
+            els.ob.textContent = analysis.obs.length;
+            els.ob.className = 'metric-value neutral';
+            els.structure.textContent = analysis.bos.length + analysis.choch.length;
+            els.structure.className = 'metric-value neutral';
+            els.trend.textContent = analysis.trend.toUpperCase();
+            els.trend.className = `metric-value ${analysis.trend === 'bullish' ? 'positive' : analysis.trend === 'bearish' ? 'negative' : 'neutral'}`;
+        }
+
+        async function runAnalysis() {
+            setLoading(true, 'Fetching market data...');
+            try {
+                const symbol = document.getElementById('symbolInput').value.trim().toUpperCase();
+                const period = document.getElementById('periodSelect').value;
+                const interval = document.getElementById('intervalSelect').value;
+                const rr = document.getElementById('rrSelect').value;
+                if (!symbol) throw new Error('Please enter a symbol');
+
+                let data;
+                try {
+                    setLoading(true, 'Downloading from Yahoo Finance...');
+                    data = await fetchData(symbol, period, interval);
+                    usingFallback = false;
+                    document.getElementById('fallbackNotice').classList.remove('active');
+                } catch (e) {
+                    console.log('Using demo data:', e.message);
+                    setLoading(true, 'Using demo data (API blocked)...');
+                    data = generateDemoData(symbol);
+                    usingFallback = true;
+                    document.getElementById('fallbackNotice').classList.add('active');
+                }
+
+                currentData = data;
+                if (data.length < 50) throw new Error('Not enough data points.');
+
+                setLoading(true, 'Running SMC analysis...');
+                const config = {
+                    useFVG: document.getElementById('useFVG').checked,
+                    useOB: document.getElementById('useOB').checked,
+                    useSweep: document.getElementById('useSweep').checked,
+                    useChoCH: true,
+                    rr: rr
+                };
+                const analysis = generateSignals(data, config);
+
+                setLoading(true, 'Rendering chart...');
+                renderChart(data, analysis);
+                updateMetrics(data, analysis);
+                setLoading(false);
+
+            } catch (error) {
+                console.error(error);
+                showError(error.message || 'Failed to load data. Try SPY, AAPL, or BTC-USD.');
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            runAnalysis();
+        });
+    </script>
+</body>
+</html>
